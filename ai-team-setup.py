@@ -97,22 +97,6 @@ ROLES: dict[str, dict] = {
         "must": ["API'yi yalnız `contracts/API.md`'den okur.", "Gerçek cihazda test eder; emülatör/simülatör yalnız kullanıcı izin verirse."],
         "must_not": ["Backend koduna dokunmak."],
     },
-    "ios": {
-        "title": "iOS Developer",
-        "prefix": "I",
-        "desc": "Yerel iOS uygulaması (Swift / SwiftUI).",
-        "owns": ["ios/"],
-        "must": ["API'yi yalnız `contracts/API.md`'den okur.", "Android ile aynı davranış ve metin; ortak ekranlarda referans olur."],
-        "must_not": ["Backend ya da Android koduna dokunmak."],
-    },
-    "android": {
-        "title": "Android Developer",
-        "prefix": "A",
-        "desc": "Yerel Android uygulaması (Kotlin / Jetpack Compose).",
-        "owns": ["android/"],
-        "must": ["API'yi yalnız `contracts/API.md`'den okur.", "iOS ile birebir davranış ve metin."],
-        "must_not": ["Backend ya da iOS koduna dokunmak."],
-    },
     "qa": {
         "title": "QA",
         "prefix": "Q",
@@ -2255,10 +2239,7 @@ def interview() -> dict:
     cfg["product_type"], suggested = PRODUCT_TYPES[k][0], list(PRODUCT_TYPES[k][1])
 
     if k in ("2", "3"):
-        m = ask_choice("\nMobil nasıl geliştirilecek?",
-                       {"1": "Flutter (tek kod tabanı)", "2": "Yerel iOS + Android", "3": "Yalnız iOS", "4": "Yalnız Android"}, "1")
-        mobile = {"1": ["flutter"], "2": ["ios", "android"], "3": ["ios"], "4": ["android"]}[m]
-        suggested = [r for r in suggested if r != "flutter"] + mobile
+        print("\nMobil: Flutter (iOS + Android tek kod tabanı).")
     if k == "1" and not ask_yes("Web'i tek full-stack geliştirici mi yapsın? (hayır: ayrı backend + frontend)", True):
         suggested = [r for r in suggested if r != "web"] + ["backend", "frontend"]
 

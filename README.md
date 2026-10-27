@@ -2,7 +2,7 @@
 
 Claude Code için yapay zekâ ekip kurulumu. Etkileşimli sorularla ürünü öğrenir, gereken rolleri önerir ve projeye ekip yapısını kurar.
 
-**Roller:** team-lead, web (full-stack), backend, frontend, flutter, ios, android, qa, araştırmacı (iş akışı / kural denetçisi), devops, tasarımcı.
+**Roller:** team-lead, web (full-stack), backend, frontend, flutter (mobil: iOS + Android tek kod tabanı), qa, araştırmacı (iş akışı / kural denetçisi), devops, tasarımcı.
 
 ## Kurulum (tek komut)
 
