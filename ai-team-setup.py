@@ -2235,7 +2235,11 @@ Tamamsa: evidence.reviewed_by: team-lead, status: DONE, log satırı; sonra `pyt
 
 
 # --------------------------------------------------------------------------- dış skill kataloğu (npx skills)
-# (depo, skill) çiftleri; rol bazlı. Hepsi 2026-10-27'de GitHub'da doğrulandı.
+# (depo, skill) çiftleri; rol bazlı. Hepsi 2026-10-27'de GitHub'da doğrulandı ve betik taraması yapıldı
+# (yalnız superpowers/systematic-debugging içinde yerel test çalıştıran find-polluter.sh var; zararsız).
+# Bilerek alınmayanlar: superpowers brainstorming (yerel sunucu betikleri), subagent-driven-development ve
+# dispatching-parallel-agents (alt ajan sınırımızla çakışır), using-superpowers (plugin varsayar); softaworks
+# qa-test-planner ve figma-generate-library (betik içerir).
 NEXT_SKILLS = [
     ("vercel/next.js", "next-dev-loop"),
     ("vercel/next.js", "next-cache-components-adoption"),
@@ -2244,49 +2248,100 @@ NEXT_SKILLS = [
     ("vercel/next.js", "next-partial-prefetching-optimizer"),
     ("vercel/next.js", "next-bundle-optimizer"),
 ]
+SP = "obra/superpowers"  # yalnız seçili skill'ler; plugin olarak KURULMAZ (kendi SessionStart hook'u ve alt ajan iş akışı bizim kurallarla çakışır)
+DEV_FLOW = [(SP, n) for n in ("test-driven-development", "systematic-debugging", "verification-before-completion",
+                             "writing-plans", "executing-plans", "requesting-code-review", "receiving-code-review",
+                             "finishing-a-development-branch")]
+WSH, GAC, JEF = "wshobson/agents", "github/awesome-copilot", "Jeffallan/claude-skills"
 ROLE_SKILLS: dict[str, list[tuple[str, str]]] = {
-    "frontend": NEXT_SKILLS + [
+    "frontend": NEXT_SKILLS + DEV_FLOW + [
         ("vercel-labs/agent-skills", "react-best-practices"),
         ("vercel-labs/agent-skills", "composition-patterns"),
         ("vercel-labs/agent-skills", "web-design-guidelines"),
         ("anthropics/skills", "frontend-design"),
         ("addyosmani/agent-skills", "frontend-ui-engineering"),
     ],
-    "backend": [
-        ("vercel/next.js", "next-dev-loop"),
+    "backend": [("vercel/next.js", "next-dev-loop")] + DEV_FLOW + [
         ("supabase/agent-skills", "supabase-postgres-best-practices"),
+        (WSH, "postgresql-table-design"),
+        (WSH, "sql-optimization-patterns"),
+        (WSH, "auth-implementation-patterns"),
+        (GAC, "postgresql-optimization"),
+        ("softaworks/agent-toolkit", "database-schema-designer"),
         ("addyosmani/agent-skills", "api-and-interface-design"),
         ("addyosmani/agent-skills", "security-and-hardening"),
+        (JEF, "secure-code-guardian"),
     ],
-    "web": NEXT_SKILLS + [
+    "web": NEXT_SKILLS + DEV_FLOW + [
         ("vercel-labs/agent-skills", "react-best-practices"),
         ("supabase/agent-skills", "supabase-postgres-best-practices"),
+        (WSH, "postgresql-table-design"),
+        (WSH, "auth-implementation-patterns"),
         ("addyosmani/agent-skills", "api-and-interface-design"),
         ("addyosmani/agent-skills", "security-and-hardening"),
     ],
-    "flutter": [
+    "flutter": DEV_FLOW + [
         ("VeryGoodOpenSource/very_good_ai_flutter_plugin", "layered-architecture"),
         ("VeryGoodOpenSource/very_good_ai_flutter_plugin", "bloc"),
         ("VeryGoodOpenSource/very_good_ai_flutter_plugin", "testing"),
         ("VeryGoodOpenSource/very_good_ai_flutter_plugin", "accessibility"),
         ("VeryGoodOpenSource/very_good_ai_flutter_plugin", "navigation"),
+        ("flutter/skills", "flutter-setup-localization"),
+        ("flutter/skills", "flutter-build-responsive-layout"),
+        ("flutter/skills", "flutter-add-widget-test"),
+        ("flutter/skills", "flutter-add-integration-test"),
         ("flutter/skills", "dart-fix-runtime-errors"),
         ("flutter/skills", "dart-run-static-analysis"),
+        (JEF, "flutter-expert"),
     ],
     "qa": [
+        ("currents-dev/playwright-best-practices-skill", "playwright-best-practices"),
         ("anthropics/skills", "webapp-testing"),
+        (WSH, "e2e-testing-patterns"),
+        (WSH, "wcag-audit-patterns"),
+        (JEF, "test-master"),
         ("addyosmani/agent-skills", "browser-testing-with-devtools"),
+        (SP, "verification-before-completion"),
     ],
     "researcher": [
+        (GAC, "threat-model-analyst"),
+        (WSH, "stride-analysis-patterns"),
+        (WSH, "security-requirement-extraction"),
+        (WSH, "threat-mitigation-mapping"),
+        (GAC, "postgresql-code-review"),
+        (JEF, "security-reviewer"),
+        ("softaworks/agent-toolkit", "requirements-clarity"),
         ("addyosmani/agent-skills", "doubt-driven-development"),
         ("addyosmani/agent-skills", "code-review-and-quality"),
     ],
     "team-lead": [
+        ("mattpocock/skills", "to-spec"),
+        ("mattpocock/skills", "to-tickets"),
+        (GAC, "breakdown-plan"),
+        (GAC, "create-implementation-plan"),
+        (WSH, "git-advanced-workflows"),
+        (SP, "writing-plans"),
         ("addyosmani/agent-skills", "code-review-and-quality"),
         ("addyosmani/agent-skills", "documentation-and-adrs"),
     ],
-    "devops": [("addyosmani/agent-skills", "ci-cd-and-automation")],
+    "devops": [
+        (GAC, "multi-stage-dockerfile"),
+        (GAC, "debian-linux-triage"),
+        (GAC, "github-actions-hardening"),
+        (WSH, "secrets-management"),
+        (WSH, "github-actions-templates"),
+        (WSH, "incident-runbook-templates"),
+        (JEF, "devops-engineer"),
+        (JEF, "monitoring-expert"),
+        (JEF, "sre-engineer"),
+        ("openai/skills", "sentry"),
+        ("addyosmani/agent-skills", "ci-cd-and-automation"),
+    ],
     "designer": [
+        (WSH, "design-system-patterns"),
+        (WSH, "wcag-audit-patterns"),
+        ("figma/mcp-server-guide", "figma-design-to-code"),
+        (GAC, "web-design-reviewer"),
         ("vercel-labs/agent-skills", "web-design-guidelines"),
         ("anthropics/skills", "frontend-design"),
     ],

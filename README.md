@@ -59,17 +59,21 @@ Web içeren ürünlerde kurulum sorar:
 
 ## Rol bazlı dış skill'ler
 
-Kurulumun sonunda rollere göre önerilen skill'ler `npx skills add <depo> --skill <ad>` ile projeye kurulur (Node.js gerekir). Her rolün dosyasına kendi skill listesi "zorunlu" olarak yazılır.
+Kurulumun sonunda rollere göre önerilen skill'ler `npx skills add <depo> --skill <ad>` ile projeye kurulur (Node.js gerekir). Her rolün dosyasına kendi listesi "zorunlu" olarak yazılır. Tüm depolar ve skill klasörleri GitHub'da doğrulandı, betik taraması yapıldı (ayrıntı: `docs/SKILL-ARASTIRMA-20261027.md`).
 
-| Rol | Skill'ler |
+| Rol | Kaynaklar |
 |---|---|
-| frontend | vercel/next.js (next-dev-loop, cache-components, partial-prefetching, bundle-optimizer), vercel-labs: react-best-practices, composition-patterns, web-design-guidelines; anthropics: frontend-design; addyosmani: frontend-ui-engineering |
-| backend | next-dev-loop (Next.js tek uygulamada), supabase-postgres-best-practices, api-and-interface-design, security-and-hardening |
-| web (full-stack) | Next.js skill'leri + react-best-practices, postgres, API tasarımı, güvenlik |
-| flutter | Very Good Ventures: layered-architecture, bloc, testing, accessibility, navigation; flutter/skills: dart-fix-runtime-errors, dart-run-static-analysis |
-| qa | anthropics: webapp-testing; addyosmani: browser-testing-with-devtools |
-| researcher | doubt-driven-development, code-review-and-quality |
-| team-lead | code-review-and-quality, documentation-and-adrs |
+| Geliştiriciler (backend, frontend, web, flutter) | **obra/superpowers** iş akışı: test-driven-development, systematic-debugging, verification-before-completion, writing/executing-plans, requesting/receiving-code-review, finishing-a-development-branch |
+| frontend | vercel/next.js (6), vercel-labs (react-best-practices, composition-patterns, web-design-guidelines), anthropics frontend-design, addyosmani frontend-ui-engineering |
+| backend | next-dev-loop, supabase-postgres-best-practices, wshobson (postgresql-table-design, sql-optimization, auth-implementation), awesome-copilot postgresql-optimization, database-schema-designer, API tasarımı, güvenlik, secure-code-guardian |
+| flutter | Very Good Ventures (5), flutter/skills (localization, responsive, widget/integration test, dart-fix, static analysis), flutter-expert |
+| qa | playwright-best-practices, webapp-testing, e2e-testing-patterns, wcag-audit-patterns, test-master, browser-testing-with-devtools, verification-before-completion |
+| researcher | threat-model-analyst (STRIDE), stride-analysis, security-requirement-extraction, threat-mitigation-mapping, postgresql-code-review, security-reviewer, requirements-clarity, doubt-driven-development, code-review |
+| team-lead | mattpocock to-spec / to-tickets, breakdown-plan, create-implementation-plan, git-advanced-workflows, writing-plans, code-review, documentation-and-adrs |
+| devops | Dockerfile, Debian/Ubuntu triage, GitHub Actions hardening/templates, secrets-management, incident runbook, devops/monitoring/SRE, Sentry, CI/CD |
+| designer | design-system-patterns, wcag-audit-patterns, figma-design-to-code, web-design-reviewer, web-design-guidelines, frontend-design |
+
+Bilerek alınmayanlar: superpowers `brainstorming` (yerel sunucu betikleri), `subagent-driven-development` / `dispatching-parallel-agents` (alt ajan sınırıyla çakışır), `using-superpowers` ve superpowers plugin'i (kendi SessionStart hook'u var); `qa-test-planner`, `figma-generate-library` (betik içerir).
 
 ## Kalıcı hafıza
 
