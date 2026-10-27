@@ -38,8 +38,12 @@ Gereksinim: Python 3.10+ (yalnız standart kütüphane). Graphify için `uv` ya 
 | `.claude/settings.json` | Hook kayıtları + deny izinleri (force push, main'e push, pkill/killall, `.env*`, `*.pem/.p8/.key` okuma). Varsa birleştirilir (`.bak` alınır) |
 | `contracts/API.md` | API sözleşmesi şablonu; tek yazar backend (yoksa web) |
 | `contracts/business-rules/_TEMPLATE.yaml` | İş kuralı şablonu: `BR-<ALAN>-NNN`, DRAFT / APPROVED, statement, enforced_by, tested_by, ui_expectation, error |
-| `scripts/team_board.py` | `.team/tasks` → `TEAM.md` panosu |
-| `scripts/team_check.py` | Defter doğrulayıcı: zorunlu alanlar, status, owner, depends_on, BR kimlikleri; DONE için branch + tests + reviewed_by (+ `user_facing: true` ise qa). `--brief`, hata varsa çıkış 1 |
+| `.team/lessons.md` | Hata günlüğü: tarih \| görev \| alan/rol \| belirti \| kök neden \| önlem. QA FAIL ve YÜKSEK/ORTA bulgu kapanınca ilgili rol ekler; SessionStart rolün son 10 dersini gösterir |
+| `.team/evidence/<ID>/` | `scripts/evidence.sh` test çıktıları (`test.txt`, `# çıkış: N` satırıyla) |
+| `scripts/team_board.py` | `.team/tasks` → `TEAM.md` panosu; en üstte "Kullanıcıdan bekleyen kararlar" |
+| `scripts/evidence.sh` | `evidence.sh <ID> -- <test komutu>`: komutu (heavy_job kilidi varsa onunla) koşar, çıktıyı `.team/evidence/<ID>/test.txt`'ye, commit sha'yı ve yolu görev dosyasına (evidence.commit, evidence.test_output) yazar |
+| `scripts/decisions.py` | `list`: PENDING kararlar (soru, A/B/C, öneri; en eski önce). `decide K-n "<cevap>"`: cevabı kelimesi kelimesine yazar, DECIDED; bloke görevlerden kararı çıkarır, kalan bağımlılık yoksa READY yapar, log satırı ekler |
+| `scripts/team_check.py` | Defter doğrulayıcı: zorunlu alanlar, status, owner, depends_on, BR kimlikleri; DONE için branch + tests + reviewed_by (+ `user_facing: true` ise qa); DONE/IN_REVIEW için evidence.commit (`git cat-file -e`) + evidence.test_output (dosya var, çıkış 0); DONE'da her kabul kriterinin (`- id: AC1`, `text`, `verified_by`) verified_by'ı dolu ve dosyası var (eski düz liste: uyarı); `qa: FAIL` geçmişli DONE görev lessons'ta yoksa uyarı. `--brief`, hata varsa çıkış 1 |
 | `scripts/heavy_job.sh` | Ağır iş kilidi: `heavy_job.sh <rol> <dk> -- <komut>`, FIFO, süre aşımında yalnız kendi süreci, `durum`, `KILIT_ADI=<cihaz>`, log `/tmp/<proje>-heavy-job.log`. Saniye sınırı: `20s` |
 | `scripts/resume_role.sh` | `resume_role.sh <rol> "<mesaj>"`: rolün son oturum id'sini bulur, `claude -p --resume` ile arka planda sürdürür (`--id`, `--yazdir`); aynı anda tek arka plan oturumu |
 
