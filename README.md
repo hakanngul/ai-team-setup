@@ -57,6 +57,20 @@ Web içeren ürünlerde kurulum sorar:
 2. **Next.js tek uygulama, tek full-stack geliştirici.**
 3. **Ayrı backend servisi + ayrı frontend.**
 
+## Rol bazlı dış skill'ler
+
+Kurulumun sonunda rollere göre önerilen skill'ler `npx skills add <depo> --skill <ad>` ile projeye kurulur (Node.js gerekir). Her rolün dosyasına kendi skill listesi "zorunlu" olarak yazılır.
+
+| Rol | Skill'ler |
+|---|---|
+| frontend | vercel/next.js (next-dev-loop, cache-components, partial-prefetching, bundle-optimizer), vercel-labs: react-best-practices, composition-patterns, web-design-guidelines; anthropics: frontend-design; addyosmani: frontend-ui-engineering |
+| backend | next-dev-loop (Next.js tek uygulamada), supabase-postgres-best-practices, api-and-interface-design, security-and-hardening |
+| web (full-stack) | Next.js skill'leri + react-best-practices, postgres, API tasarımı, güvenlik |
+| flutter | Very Good Ventures: layered-architecture, bloc, testing, accessibility, navigation; flutter/skills: dart-fix-runtime-errors, dart-run-static-analysis |
+| qa | anthropics: webapp-testing; addyosmani: browser-testing-with-devtools |
+| researcher | doubt-driven-development, code-review-and-quality |
+| team-lead | code-review-and-quality, documentation-and-adrs |
+
 ## Kalıcı hafıza
 
 - Dosya tabanlı hafıza her rol için kurulur.

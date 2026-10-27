@@ -348,10 +348,18 @@ Sahip olduğun yer: {', '.join(f'`{o}`' for o in owns)}. Görev öneki `{meta['p
 {bullet(meta['must_not'])}
 - Kapsam dışı dosyaya dokunmak; ihtiyaç varsa team-lead'e mesaj at.
 
-## Bitirmeden
+{skills_section(role, cfg)}## Bitirmeden
 - Görev dosyası (status, log, evidence) ve `HANDOFF.md` güncel.
 - Kapanış raporu formatı `CLAUDE.md`'de.
 """
+
+
+def skills_section(role: str, cfg: dict) -> str:
+    sk = role_skills(role, cfg) if cfg.get("ext_skills") else []
+    if not sk:
+        return ""
+    names = ", ".join(f"`{k}`" for _, k in sk)
+    return f"## Kullanacağın skill'ler (zorunlu, ilgili işte)\n- {names}\n- İş başlamadan ilgili skill'i çağır; skill ile bu dosya çelişirse CLAUDE.md ve bu dosya geçerlidir.\n\n"
 
 
 def memory_md(role: str) -> str:
@@ -2226,6 +2234,102 @@ Tamamsa: evidence.reviewed_by: team-lead, status: DONE, log satırı; sonra `pyt
     return s
 
 
+# --------------------------------------------------------------------------- dış skill kataloğu (npx skills)
+# (depo, skill) çiftleri; rol bazlı. Hepsi 2026-10-27'de GitHub'da doğrulandı.
+NEXT_SKILLS = [
+    ("vercel/next.js", "next-dev-loop"),
+    ("vercel/next.js", "next-cache-components-adoption"),
+    ("vercel/next.js", "next-cache-components-optimizer"),
+    ("vercel/next.js", "next-partial-prefetching-adoption"),
+    ("vercel/next.js", "next-partial-prefetching-optimizer"),
+    ("vercel/next.js", "next-bundle-optimizer"),
+]
+ROLE_SKILLS: dict[str, list[tuple[str, str]]] = {
+    "frontend": NEXT_SKILLS + [
+        ("vercel-labs/agent-skills", "react-best-practices"),
+        ("vercel-labs/agent-skills", "composition-patterns"),
+        ("vercel-labs/agent-skills", "web-design-guidelines"),
+        ("anthropics/skills", "frontend-design"),
+        ("addyosmani/agent-skills", "frontend-ui-engineering"),
+    ],
+    "backend": [
+        ("vercel/next.js", "next-dev-loop"),
+        ("supabase/agent-skills", "supabase-postgres-best-practices"),
+        ("addyosmani/agent-skills", "api-and-interface-design"),
+        ("addyosmani/agent-skills", "security-and-hardening"),
+    ],
+    "web": NEXT_SKILLS + [
+        ("vercel-labs/agent-skills", "react-best-practices"),
+        ("supabase/agent-skills", "supabase-postgres-best-practices"),
+        ("addyosmani/agent-skills", "api-and-interface-design"),
+        ("addyosmani/agent-skills", "security-and-hardening"),
+    ],
+    "flutter": [
+        ("VeryGoodOpenSource/very_good_ai_flutter_plugin", "layered-architecture"),
+        ("VeryGoodOpenSource/very_good_ai_flutter_plugin", "bloc"),
+        ("VeryGoodOpenSource/very_good_ai_flutter_plugin", "testing"),
+        ("VeryGoodOpenSource/very_good_ai_flutter_plugin", "accessibility"),
+        ("VeryGoodOpenSource/very_good_ai_flutter_plugin", "navigation"),
+        ("flutter/skills", "dart-fix-runtime-errors"),
+        ("flutter/skills", "dart-run-static-analysis"),
+    ],
+    "qa": [
+        ("anthropics/skills", "webapp-testing"),
+        ("addyosmani/agent-skills", "browser-testing-with-devtools"),
+    ],
+    "researcher": [
+        ("addyosmani/agent-skills", "doubt-driven-development"),
+        ("addyosmani/agent-skills", "code-review-and-quality"),
+    ],
+    "team-lead": [
+        ("addyosmani/agent-skills", "code-review-and-quality"),
+        ("addyosmani/agent-skills", "documentation-and-adrs"),
+    ],
+    "devops": [("addyosmani/agent-skills", "ci-cd-and-automation")],
+    "designer": [
+        ("vercel-labs/agent-skills", "web-design-guidelines"),
+        ("anthropics/skills", "frontend-design"),
+    ],
+}
+
+
+def role_skills(role: str, cfg: dict) -> list[tuple[str, str]]:
+    sk = list(ROLE_SKILLS.get(role, []))
+    if role == "backend" and cfg.get("web_arch") == "split":
+        sk = [x for x in sk if x[0] != "vercel/next.js"]
+    return sk
+
+
+def all_skills(cfg: dict) -> list[tuple[str, str]]:
+    seen: dict[tuple[str, str], None] = {}
+    for r in cfg["roles"]:
+        for x in role_skills(r, cfg):
+            seen.setdefault(x, None)
+    return list(seen)
+
+
+def install_skills(root: Path, cfg: dict, dry: bool) -> str:
+    items = all_skills(cfg) if cfg.get("ext_skills") else []
+    if not items:
+        return ""
+    if dry:
+        return f"DRY-RUN: {len(items)} skill kurulacaktı."
+    if not shutil.which("npx"):
+        return "npx yok (Node.js gerekli). Sonra elle: " + "; ".join(f"npx skills add {r} --skill {k}" for r, k in items[:3]) + " …"
+    ok, bad = 0, []
+    for repo, name in items:
+        cmd = ["npx", "-y", "skills", "add", repo, "--skill", name, "-y"]
+        print("  $", " ".join(cmd))
+        if subprocess.run(cmd, cwd=root).returncode == 0:
+            ok += 1
+        else:
+            bad.append(f"{repo} {name}")
+    msg = f"{ok}/{len(items)} skill kuruldu."
+    if bad:
+        msg += " Kurulamayan: " + ", ".join(bad) + " (elle: npx skills add <depo> --skill <ad>)"
+    return msg
+
+
 # --------------------------------------------------------------------------- graphify
 
 
@@ -2326,6 +2430,11 @@ def interview() -> dict:
         print("  1 veya daha büyük bir sayı gir.")
     cfg["hooks"] = ask_yes("\nHook'lar kurulsun mu? (rol bağlamı, yazma kapsamı denetimi, oturum sonu kontrolü; önerilir)", True)
     cfg["heavy_job"] = ask_yes("Ağır iş kilidi kurulsun mu? (tam build/test aynı anda tek iş, scripts/heavy_job.sh; önerilir)", True)
+    preview = all_skills({**cfg, "ext_skills": True})
+    cfg["ext_skills"] = False
+    if preview:
+        print(f"\nRollere göre önerilen dış skill'ler ({len(preview)}): " + ", ".join(k for _, k in preview))
+        cfg["ext_skills"] = ask_yes("Bunlar `npx skills add` ile projeye kurulsun mu? (Node.js gerekir; önerilir)", True)
     return cfg
 
 
@@ -2422,6 +2531,7 @@ def main() -> int:
     if not args.dry_run:
         subprocess.run([sys.executable, str(root / "scripts/team_board.py")], cwd=root)
     graph_note = setup_graphify(root, args.dry_run) if "graphify" in cfg["memory"] else ""
+    skill_note = install_skills(root, cfg, args.dry_run)
 
     print(f"\n{'Yazılacak' if args.dry_run else 'Yazıldı'}: {len(w.written)} dosya" + (f", atlandı: {len(w.skipped)}" if w.skipped else ""))
     for f in w.written:
@@ -2430,6 +2540,8 @@ def main() -> int:
         print("  =", f, "(değiştirilmedi)")
     if graph_note:
         print("\nGraphify:", graph_note)
+    if skill_note:
+        print("\nSkill'ler:", skill_note)
     print(f"""
 Sonraki adımlar:
   1. cd {root} && claude --agent team-lead
