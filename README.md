@@ -50,6 +50,13 @@ Gereksinim: Python 3.10+ (yalnız standart kütüphane). Graphify için `uv` ya 
 Kurulumda iki ek soru var: hook'lar ve ağır iş kilidi (ikisi de varsayılan evet).
 Rol tespiti sırası: `TEAM_ROLE` / `CLAUDE_AGENT` ortam değişkeni, `claude --agent <rol>`, oturum adı, rolün klasörü.
 
+## Web mimarisi seçenekleri
+
+Web içeren ürünlerde kurulum sorar:
+1. **Next.js tek uygulama, backend + frontend ayrı roller (önerilen):** tek repo ve tek deploy. backend `web/lib`, `web/server`, `web/app/api`, `web/database`, `web/tests` klasörlerinin, frontend `web/app` (api hariç), `web/components`, `web/public`, `web/styles` klasörlerinin sahibi. Hook bu ayrımı zorlar. Mobil (Flutter) yalnız `web/app/api/v1` üzerinden, `contracts/API.md` sözleşmesiyle konuşur.
+2. **Next.js tek uygulama, tek full-stack geliştirici.**
+3. **Ayrı backend servisi + ayrı frontend.**
+
 ## Kalıcı hafıza
 
 - Dosya tabanlı hafıza her rol için kurulur.

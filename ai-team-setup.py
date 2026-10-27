@@ -226,6 +226,30 @@ def bullet(items: list[str]) -> str:
 # --------------------------------------------------------------------------- şablonlar
 
 
+def arch_rules(cfg: dict) -> str:
+    w = cfg.get("web_dir", "web")
+    if cfg.get("web_arch") == "monolith":
+        return f"""
+## Mimari: Next.js tek uygulama (`{w}/`), backend ve frontend ayrı roller
+- Tek deploy, tek kimlik doğrulama. İş kuralları ve veritabanı erişimi YALNIZ `{w}/lib/` (ve `{w}/server/`) katmanında; ekranlar bu katmanı çağırır, doğrudan veritabanına gitmez.
+- Mobil (ve dış istemciler) yalnız sürümlü API'yi kullanır: `{w}/app/api/v1/**`, sözleşmesi `contracts/API.md`.
+- backend: `{w}/lib/`, `{w}/server/`, `{w}/app/api/`, `{w}/database/`, `{w}/tests/`. frontend: `{w}/app/` (api hariç), `{w}/components/`, `{w}/public/`, `{w}/styles/`. Hook bu ayrımı zorlar.
+- Ortak dosyalar (`package.json`, `next.config.*`, `tsconfig.json`) değişikliği team-lead'e sorularak yapılır.
+- Ayrı backend servisine geçiş ancak gerekince: uzun/yoğun arka plan işleri için önce ayrı worker, çok istemci/dış API ya da bağımsız ölçek ihtiyacında servis ayrımı. Karar `.team/decisions/`'a yazılır.
+"""
+    if cfg.get("web_arch") == "fullstack":
+        return f"""
+## Mimari: Next.js tek uygulama (`{w}/`), tek full-stack geliştirici
+- İş kuralları ve veritabanı erişimi `{w}/lib/` katmanında; mobil yalnız `{w}/app/api/v1/**` (sözleşme `contracts/API.md`).
+"""
+    if cfg.get("web_arch") == "split":
+        return """
+## Mimari: ayrı backend servisi + ayrı frontend
+- Frontend ve mobil backend'e yalnız `contracts/API.md` sözleşmesiyle bağlanır; sözleşme değişikliği CONTRACT_CHANGE mesajıyla duyurulur.
+"""
+    return ""
+
+
 def claude_md(cfg: dict) -> str:
     role_lines = []
     for r in cfg["roles"]:
@@ -282,7 +306,7 @@ Dil: yanıtlar ve dokümanlar {cfg['language']}. Kullanıcıya "{cfg['boss']}" d
 - Alt ajan: aynı anda en fazla {cfg['max_subagents']}. {heavy_rule}
 - Test kademeleri: iş sonunda HIZLI; API değişirse CANLI (QA); tam regresyon yalnız {cfg['boss']} isterse.
 - Merge edilen işin dalı ve worktree'si aynı adımda kaldırılır.
-{graphify_rules}{extra}
+{graphify_rules}{arch_rules(cfg)}{extra}
 ## Hafıza (her rol için)
 - Oturum başı: `.claude/agent-memory/<rol>/MEMORY.md` (kalıcı kurallar, ≤200 satır) ve `HANDOFF.md` (güncel durum, ≤40 satır) okunur.
 - "Şu an ne durumda" → `.team/tasks` + git (kesin kaynak). "Ne oldu, neden" → `.team/PANO.md` ve görev log'ları.
@@ -1969,7 +1993,8 @@ def policy_json(cfg: dict) -> str:
             if r == writer:
                 allow.append("contracts/API.md")
         roles[r] = {"agent": r, "cwd": ".", "folders": [f for f in folders if f not in ("", ".")],
-                    "memory": mem, "task_prefixes": [pfx], "edit_allow": allow, "edit_deny": list(common_deny)}
+                    "memory": mem, "task_prefixes": [pfx], "edit_allow": allow,
+                    "edit_deny": list(common_deny) + list(cfg.get("extra_deny", {}).get(r, []))}
     data = {
         "version": 1,
         "_doc": ("Rol → yazma kapsamı (glob, proje köküne göre; ** dizin sınırını aşar, * aşmaz). "
@@ -2240,8 +2265,22 @@ def interview() -> dict:
 
     if k in ("2", "3"):
         print("\nMobil: Flutter (iOS + Android tek kod tabanı).")
-    if k == "1" and not ask_yes("Web'i tek full-stack geliştirici mi yapsın? (hayır: ayrı backend + frontend)", True):
-        suggested = [r for r in suggested if r != "web"] + ["backend", "frontend"]
+    cfg["web_arch"] = None
+    cfg["web_dir"] = "web"
+    if k in ("1", "3"):
+        a = ask_choice("\nWeb / backend mimarisi:", {
+            "1": "Next.js tek uygulama, backend + frontend ayrı roller, aynı repo (önerilen)",
+            "2": "Next.js tek uygulama, tek full-stack geliştirici",
+            "3": "Ayrı backend servisi + ayrı frontend",
+        }, "1")
+        cfg["web_arch"] = {"1": "monolith", "2": "fullstack", "3": "split"}[a]
+        base = [r for r in suggested if r not in ("web", "backend", "frontend")]
+        if cfg["web_arch"] == "fullstack":
+            suggested = ["web"] + base
+        else:
+            suggested = ["backend", "frontend"] + base
+        if cfg["web_arch"] in ("monolith", "fullstack"):
+            cfg["web_dir"] = ask("Next.js uygulama klasörü", "web").strip().strip("/") or "web"
 
     cfg["stack"] = ask("\nTeknoloji (ör. Next.js + PostgreSQL, Flutter). Boş bırakırsan ilk görevde netleşir")
 
@@ -2256,11 +2295,21 @@ def interview() -> dict:
         suggested = [r for r in chosen if r in ROLES and r != "team-lead"]
     cfg["roles"] = ["team-lead"] + list(dict.fromkeys(suggested))
 
-    print("\nHer geliştirici rolünün sahip olduğu klasör (Enter = varsayılan):")
     cfg["owns"] = {}
-    for r in cfg["roles"]:
-        if r in ("team-lead", "qa", "researcher"):
-            continue
+    cfg["extra_deny"] = {}
+    w = cfg["web_dir"]
+    if cfg["web_arch"] == "monolith" and {"backend", "frontend"} <= set(cfg["roles"]):
+        cfg["owns"]["backend"] = [f"{w}/lib/", f"{w}/server/", f"{w}/app/api/", f"{w}/database/", f"{w}/tests/"]
+        cfg["owns"]["frontend"] = [f"{w}/app/", f"{w}/components/", f"{w}/public/", f"{w}/styles/"]
+        cfg["extra_deny"]["frontend"] = [f"{w}/app/api/**"]
+        print(f"\nNext.js tek uygulama ({w}/): backend → lib/, server/, app/api/, database/, tests/; "
+              "frontend → app/ (api hariç), components/, public/, styles/.")
+    elif cfg["web_arch"] == "fullstack" and "web" in cfg["roles"]:
+        cfg["owns"]["web"] = [f"{w}/"]
+    rest = [r for r in cfg["roles"] if r not in ("team-lead", "qa", "researcher") and r not in cfg["owns"]]
+    if rest:
+        print("\nHer geliştirici rolünün sahip olduğu klasör (Enter = varsayılan):")
+    for r in rest:
         cfg["owns"][r] = [ask(f"  {r}", ROLES[r]["owns"][0])]
 
     print("\nKalıcı hafıza: dosya tabanlı hafıza (MEMORY.md + HANDOFF.md) her rol için kurulur.")
