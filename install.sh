@@ -2,6 +2,7 @@
 # ai-team-setup kurulumu: ~/tools/ai-team-setup'a indirir (ya da günceller) ve `ai-team-setup` komutunu ekler.
 # Kullanım: bash install.sh
 set -euo pipefail
+cd "$HOME"   # kurulum klasörünün içinden çalıştırılırsa silinen klasörde kalmasın
 
 REPO="https://github.com/hakanngul/ai-team-setup.git"
 DIR="$HOME/tools/ai-team-setup"
