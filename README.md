@@ -4,6 +4,14 @@ Claude Code için yapay zekâ ekip kurulumu. Etkileşimli sorularla ürünü ö�
 
 **Roller:** team-lead, web (full-stack), backend, frontend, flutter, ios, android, qa, araştırmacı (iş akışı / kural denetçisi), devops, tasarımcı.
 
+## Kurulum (tek komut)
+
+```bash
+curl -fsSL -H "Authorization: token $(gh auth token)" https://raw.githubusercontent.com/hakanngul/ai-team-setup/main/install.sh | bash
+```
+
+ya da depoyu indirdiysen `bash install.sh`. `~/tools/ai-team-setup`'a kurar ve `ai-team-setup` komutunu ekler; tekrar çalıştırınca günceller.
+
 ## Kullanım
 
 ```bash
