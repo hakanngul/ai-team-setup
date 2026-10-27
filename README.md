@@ -28,7 +28,7 @@ Gereksinim: Python 3.10+ (yalnız standart kütüphane). Graphify için `uv` ya 
 | `CLAUDE.md` | Ekibin tek kural kaynağı: roller, görev akışı, QA kapısı, kanıtla review, push / gizli bilgi kuralları, hafıza kuralları |
 | `.claude/agents/<rol>.md` | Rol tanımı (`claude --agent <rol>` ya da subagent) |
 | `.claude/agent-memory/<rol>/` | `MEMORY.md` (kalıcı kurallar) + `HANDOFF.md` (güncel durum) |
-| `.claude/skills/` | görev-aç, görev-review, qa-doğrula, kural-denetimi, oturum-sonu |
+| `.claude/skills/` (team-lead: yerel-merge, durum-raporu, dalga-planla, qa-dongusu + koordinasyon el kitabı) | görev-aç, görev-review, qa-doğrula, kural-denetimi, oturum-sonu |
 | `.team/` | Görev defteri (`tasks/`), mesaj protokolü, kararlar günlüğü, `team.json` |
 | `.team/decisions/_TEMPLATE.md` | Kullanıcı kararı şablonu (`K-<no>`, PENDING / DECIDED); bağlı görev `depends_on: [K-<no>]` |
 | `.team/policy.json` | Rol → yazma kapsamı (glob). team.json rollerinden ve klasör cevaplarından üretilir; yalnız kullanıcı değiştirir |

@@ -348,9 +348,25 @@ Sahip olduğun yer: {', '.join(f'`{o}`' for o in owns)}. Görev öneki `{meta['p
 {bullet(meta['must_not'])}
 - Kapsam dışı dosyaya dokunmak; ihtiyaç varsa team-lead'e mesaj at.
 
-{skills_section(role, cfg)}## Bitirmeden
+{skills_section(role, cfg)}{handbook(role)}## Bitirmeden
 - Görev dosyası (status, log, evidence) ve `HANDOFF.md` güncel.
 - Kapanış raporu formatı `CLAUDE.md`'de.
+"""
+
+
+def handbook(role: str) -> str:
+    if role != "team-lead":
+        return ""
+    return """## Koordinasyon el kitabı
+- Sen teslimat yöneticisisin, koordinatör değil: kanıtı kendin doğrularsın, kullanıcıya yalnız karar gerektireni ve dalga sonunu raporlarsın.
+- Döngü: `dalga-planla` → ASSIGN → REVIEW_REQUEST → `qa-dongusu` → kullanıcı onayı → `yerel-merge` → `oturum-sonu`. Durum sorulunca `durum-raporu`.
+- Rol oturumları boşta açık tutulmaz: `scripts/resume_role.sh <rol> "<kısa mesaj: görev kimliği + dosya yolu>"`; uzun bağlam yapıştırma, "görev dosyasını oku" de. Aynı anda tek arka plan oturumu.
+- Arka plan işinin sonucunu tahmin etme; bitince oku, rolün raporundaki dal@sha'yı git'te doğrula.
+- Engel çıkınca: görevi BLOCKED yap, nedenini ve ne gerektiğini yaz, başka READY işe geç; boş bekleme.
+- Kullanıcının eli gereken her adım (cihaz bağlama, kilit, hesap, ödeme, onay) önceden bildirilir ve `.team/user-actions.md`'de tutulur; canlı öncesi işler orada "Canlı öncesi" başlığında birikir.
+- Kendi hatanı saklama: yanlış komut, yanlış talimat ya da sapma olursa kullanıcıya bir satırla söyle ve PANO'ya yaz.
+- Yanıtların kısa: en fazla birkaç madde; teknik ayrıntı kullanıcı isterse.
+
 """
 
 
@@ -2231,6 +2247,66 @@ Tamamsa: evidence.reviewed_by: team-lead, status: DONE, log satırı; sonra `pyt
    `| tarih | görev | alan/rol | belirti | kök neden | önlem (test/kural) |` (önlem: BR kimliği ve tested_by'a eklenen test).
 """,
         )
+
+    s["yerel-merge"] = skill(
+        "yerel-merge",
+        "team-lead: DONE görevin dalını güvenli biçimde ana geliştirme dalına alır. 'merge et', 'al' denince kullan.",
+        """
+Ön koşul: görev DONE (gorev-review geçti) ve kullanıcı onay verdi. Değilse dur.
+1. Temiz mi: `git status --short` (izlenmeyenler hariç) boş. Kirliyse ve dosyalar başka rolünse dokunma; geçici worktree kullan: `git worktree add --detach /tmp/tl-merge origin/<hedef>`.
+2. Güncelle: `git fetch`. Hedef dal (develop/development) uzaktakiyle aynı olmalı.
+3. Yedek tag: `git tag yedek/<ID>-$(date +%Y%m%d-%H%M) origin/<hedef>`.
+4. Gizli bilgi: `git diff --name-only origin/<hedef>...origin/<dal> | grep -E '\\.env|\\.pem$|\\.p8$|\\.key$'` boş olmalı; diff'te parola/anahtar satırı yok.
+5. Merge: önce `--ff-only`, olmazsa `--no-ff -m "merge: <ID>"`. Çakışma: yalnız doküman ise iki tarafı koruyarak çöz; kodda çakışma → `git merge --abort`, sahibine geri ver.
+6. Hızlı test: yalnız değişen alanın testleri (heavy_job kilidiyle). Kırmızıysa yedek tag'e dön, kullanıcıya bildir.
+7. Gönder: hedef dalı ve yedek tag'i uzak depoya gönder (zorlamalı gönderim yok, ana yayın dalına doğrudan gönderim yok).
+8. Temizlik: dalı yerelde ve uzakta sil, geçici worktree'yi kaldır, `git worktree prune`. Kirli worktree silinmez.
+9. Migration varsa: hedef veritabanına yedek alarak uygula (geri alma betiği hazır), sonucu doğrula.
+10. Kayıt: görev evidence + log (`merge: <hedef> <sha>`), PANO satırı, `team_board.py`, `team_check.py --brief` 0 hata.
+Rapor: `<ID> → <hedef> <sha>, yedek <tag>, dal silindi` ya da neden durduğu.
+""",
+    )
+    s["durum-raporu"] = skill(
+        "durum-raporu",
+        "team-lead: 'nedir durum', 'ne yapıyoruz', 'ajanlar ne diyor' sorusuna kısa durum özeti.",
+        """
+Ajanlara tekrar sorma; kaynaklardan derle:
+1. `python3 scripts/team_board.py` ve `python3 scripts/decisions.py list`.
+2. Çalışan arka plan oturumu var mı (resume_role kilidi / süreç listesi) ve ağır iş kilidi: `scripts/heavy_job.sh durum`.
+3. Yanıt biçimi (en fazla 10 satır):
+   - Şu an: hangi rol ne yapıyor (tek satır)
+   - Biten: son tamamlananlar
+   - Sırada: sonraki 1-3 iş
+   - Senden beklenen: bekleyen kararlar ve kullanıcı eli gereken adımlar (`.team/user-actions.md`), yoksa "yok"
+Bilmediğini tahmin etme: arka plan işi bitmediyse "sürüyor" de.
+""",
+    )
+    s["dalga-planla"] = skill(
+        "dalga-planla",
+        "team-lead: işleri dalgalara/sprintlere böler, bağımlılık sırasını ve rol dağılımını çıkarır.",
+        """
+1. Hedefi spesifikasyona çevir (gerekirse to-spec / breakdown-plan), görevleri to-tickets ile çıkar; her görev en fazla ~1 gün / ~5 dosya.
+2. Bağımlılık sırası: API/şema (backend) → istemciler (frontend, flutter) → QA → kullanıcı onayı. Çok platformlu işte bir platform referans olur, diğeri onu birebir izler; metinler referansın görev log'una yazılır.
+3. Dalga = birlikte QA'lanacak 2-4 görev. QA kurulum maliyeti yüksekse görevleri tek turda doğrulat.
+4. Aynı anda tek arka plan oturumu: sıra dalga içinde rol rol ilerler; ağır işler heavy_job kilidinde.
+5. Dalga sonunda boşta ajan bırakma: QA'ya dalganın kullanıcıya görünen işleri için QA_REQUEST, araştırmacıya dalganın iş kuralları için denetim görevi.
+6. Kullanıcı eli gereken adımları (cihaz, hesap, onay) dalga başında `.team/user-actions.md`'ye yaz ve kullanıcıya ÖNCEDEN söyle.
+7. Planı PANO'ya tek satır, görevleri `.team/tasks`'a işle, pano üret.
+""",
+    )
+    s["qa-dongusu"] = skill(
+        "qa-dongusu",
+        "team-lead: geliştirici → QA → bulgu → düzeltme → dar tekrar test → onay → merge döngüsünü yürütür.",
+        """
+1. REVIEW_REQUEST gelince: dal@sha'yı doğrula (`git log origin/<dal>`), gorev-review ön kontrolü.
+2. QA_REQUEST: dal@sha, kabul kriterleri, ortam (kopya DB, port), cihaz kilitleri; kullanıcı eli gereken adım varsa ÖNCE kullanıcıya bildir.
+3. QA_RESULT FAIL: bulguları madde madde AYNI geliştirici oturumuna geri ver (`resume_role.sh <rol> "<maddeler + rapor yolu>"`); düzeltme sonrası QA'ya yalnız o maddeler için dar tekrar test iste.
+4. Bulgu başka rolün alanındaysa (ör. istemci için API eksik): istemci görevini BLOCKED yap, sağlayıcı role görev aç (istenen alanlar aynen), bitince CONTRACT_CHANGE ile istemciyi aç.
+5. PASS: kullanıcıya kısa özet + görsel kanıt (yan yana görüntü/PDF); onay gelince yerel-merge.
+6. Kapanan FAIL'ler için `.team/lessons.md` satırı yazıldı mı kontrol et.
+Kurallar: arka plan işinin sonucunu tahmin etme, bildirimi bekle; ajanın "bitti" demesi kanıt değildir; aynı anda tek arka plan oturumu.
+""",
+    )
     return s
 
 
@@ -2530,6 +2606,7 @@ def build(root: Path, cfg: dict, dry: bool) -> Writer:
     w.write(".team/policy.json", policy_json(cfg))
     w.write(".team/decisions/_TEMPLATE.md", DECISION_TEMPLATE)
     w.write(".team/lessons.md", LESSONS_MD)
+    w.write(".team/user-actions.md", "# Kullanıcıdan beklenen adımlar (team-lead tutar)\n\n## Şimdi\n- (yok)\n\n## Canlı öncesi\n- (yok)\n")
     w.write(".team/.gitignore", ".runtime/\n")
     w.write("scripts/team_board.py", BOARD_PY, executable=True)
     w.write("scripts/team_check.py", TEAM_CHECK_PY, executable=True)
